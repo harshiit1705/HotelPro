@@ -48,6 +48,66 @@ HotelPro is built on standard **Mongoose** models with full MongoDB schema valid
 - **Production Mode (Live MongoDB)**: Connects to MongoDB via standard `MONGODB_URI` environment variable.
 - **Autonomous In-Memory Fallback Engine**: If no live MongoDB daemon is detected on startup or during automated test runs (`NODE_ENV=test`), HotelPro automatically activates its high-fidelity in-memory database engine. This engine supports full query chaining (`.select()`, `.populate()`, `.sort()`, `.limit()`), document lifecycle methods (`save()`, `matchPassword()`), and MongoDB aggregations with zero external binary download required.
 
+## 🗄️ Database ER Diagram
+
+HotelPro uses a relational-style entity structure implemented through MongoDB collections and Mongoose schemas. The Entity Relationship Diagram (ERD) illustrates the relationships between users, room inventory, and reservations.
+
+### Entity Relationship Diagram
+
+```mermaid
+erDiagram
+    USER ||--o{ RESERVATION : creates
+    ROOM ||--o{ RESERVATION : assigned_to
+
+    USER {
+        ObjectId _id PK
+        string name
+        string email UK
+        string password
+        string role
+    }
+
+    ROOM {
+        ObjectId _id PK
+        string roomNumber
+        string roomType
+        number pricePerNight
+        number maxGuests
+        boolean isActive
+    }
+
+    RESERVATION {
+        ObjectId _id PK
+        ObjectId userId FK
+        ObjectId roomId FK
+        date checkIn
+        date checkOut
+        number totalAmount
+        string reservationStatus
+        string paymentStatus
+    }
+```
+
+### Entity Relationships
+
+| Relationship | Cardinality | Description |
+|---|---|---|
+| User → Reservation | One-to-Many | A registered guest can create multiple reservations. |
+| Room → Reservation | One-to-Many | A room can be associated with multiple reservations over time, provided their booking dates do not overlap. |
+| Reservation → User | Many-to-One | Every reservation belongs to one user. |
+| Reservation → Room | Many-to-One | Every reservation references one room. |
+
+### Database Integrity Rules
+
+- Every reservation must reference an existing user and room.
+- A room cannot have overlapping active reservations.
+- Reservation status and payment status are maintained independently.
+- Room availability is calculated using check-in/check-out dates and reservation lifecycle status.
+- Passwords are stored as bcrypt hashes, never as plaintext.
+- Foreign-key-style references are maintained using MongoDB ObjectIds and Mongoose references.
+
+**Note:** The ER diagram represents the logical database architecture. Actual field names and references should match the implemented Mongoose schemas.
+
 ---
 
 ## 🧪 Automated Test Suite
